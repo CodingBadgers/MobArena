@@ -1,5 +1,7 @@
 package com.garbagemule.MobArena;
 
+import java.util.HashMap;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -7,15 +9,21 @@ import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 
 import com.garbagemule.MobArena.framework.Arena;
 
 public class ScoreboardManager {
     private static final String DISPLAY_NAME = ChatColor.GREEN + "Kills       " + ChatColor.AQUA + "Wave ";
-
+    
+    private static final String DEAD_TEAM_NAME = "dead";
+    private static final String DEAD_TEAM_PREFIX = ChatColor.STRIKETHROUGH + "";
+    
     private Arena arena;
     private Scoreboard scoreboard;
     private Objective kills;
+    private HashMap<Player, String> teamPlayer = new HashMap<Player, String>();
+    private Team deadTeam;
     
     /**
      * Create a new scoreboard for the given arena.
@@ -31,12 +39,42 @@ public class ScoreboardManager {
      * and giving him an initial to-be-reset non-zero score.
      * @param player a player
      */
-    void addPlayer(Player player) {
+    void addPlayer(Player player, String teamName, ChatColor teamColor) {
         /* Set the player's scoreboard and give them an initial non-zero
          * score. This is necessary due to either Minecraft or Bukkit
          * not wanting to show non-zero scores initially. */
-        player.setScoreboard(scoreboard);
+    	
+    	Team team = scoreboard.getTeam(teamName);
+    	if (team == null) {
+    		team = scoreboard.registerNewTeam(teamName);
+    		team.setPrefix(teamColor + "[" + teamName + "] " + ChatColor.WHITE);
+    	}    
+    	team.addPlayer(player);
+    	teamPlayer.put(player, teamName);
+
+    	player.setScoreboard(scoreboard);
         kills.getScore(player).setScore(8);
+    }
+    
+    /**
+     * Kill a player and put the on the dead team.
+     * @param player a player
+     */
+    void killPlayer(Player player) {
+    	
+    	if (!teamPlayer.containsKey(player))
+    		return;
+    	
+    	final String teamName = teamPlayer.get(player);    	
+    	Team team = scoreboard.getTeam(teamName);
+    	if (team != null) {
+    		team.removePlayer(player);
+    		teamPlayer.remove(player);
+    	}
+    	
+    	deadTeam.addPlayer(player);
+    	teamPlayer.put(player, DEAD_TEAM_NAME);
+    	
     }
     
     /**
@@ -45,6 +83,14 @@ public class ScoreboardManager {
      * @param player a player
      */
     void removePlayer(Player player) {
+    	
+    	if (!teamPlayer.containsKey(player))
+    		return;
+    	
+    	final String teamName = teamPlayer.get(player);   	
+    	if (!teamName.equalsIgnoreCase(DEAD_TEAM_NAME))
+    		killPlayer(player);
+    	    	
         player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
     }
 
@@ -91,6 +137,12 @@ public class ScoreboardManager {
         kills = scoreboard.registerNewObjective("kills", "ma-kills");
         kills.setDisplaySlot(DisplaySlot.SIDEBAR);
         updateWave(0);
+        
+        if (deadTeam != null) {
+        	deadTeam.unregister();
+        }
+        deadTeam = scoreboard.registerNewTeam(DEAD_TEAM_NAME);
+        deadTeam.setPrefix(DEAD_TEAM_PREFIX);
     }
 
     static class NullScoreboardManager extends ScoreboardManager {

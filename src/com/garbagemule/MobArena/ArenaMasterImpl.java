@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
@@ -303,9 +304,19 @@ public class ArenaMasterImpl implements ArenaMaster
         // Check if weapons and armor for this class should be unbreakable
         boolean weps = section.getBoolean("unbreakable-weapons", true);
         boolean arms = section.getBoolean("unbreakable-armor", true);
+        
+        String chatColorString = section.getString("color", "WHITE");
+        
+        ChatColor chatColor;
+        try {
+        	chatColor = ChatColor.valueOf(chatColorString.toUpperCase(java.util.Locale.ENGLISH));
+        } catch (IllegalArgumentException e) {
+        	Messenger.warning("Could not parse color '" + chatColorString + "' for class '" + classname + "'");
+        	chatColor = ChatColor.WHITE;
+        }
 
         // Create an ArenaClass with the config-file name.
-        ArenaClass arenaClass = new ArenaClass(classname, weps, arms);
+        ArenaClass arenaClass = new ArenaClass(classname, weps, arms, chatColor);
 
         // Parse the items-node
         String items = section.getString("items", "");
@@ -355,7 +366,7 @@ public class ArenaMasterImpl implements ArenaMaster
         return arenaClass;
     }
 
-    private void loadClassPermissions(ArenaClass arenaClass, ConfigurationSection section) {
+	private void loadClassPermissions(ArenaClass arenaClass, ConfigurationSection section) {
         List<String> perms = section.getStringList("permissions");
         if (perms.isEmpty()) return;
 

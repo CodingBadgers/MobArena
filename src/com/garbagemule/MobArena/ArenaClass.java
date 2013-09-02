@@ -3,6 +3,7 @@ package com.garbagemule.MobArena;
 import java.util.*;
 import java.util.Map.Entry;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -19,12 +20,13 @@ public class ArenaClass
     private Map<String,Boolean> lobbyperms;
     private boolean unbreakableWeapons, unbreakableArmor;
     private Location classchest;
+    private ChatColor color;
 
     /**
      * Create a new, empty arena class with the given name.
      * @param name the class name as it appears in the config-file
      */
-    public ArenaClass(String name, boolean unbreakableWeapons, boolean unbreakableArmor) {
+    public ArenaClass(String name, boolean unbreakableWeapons, boolean unbreakableArmor, ChatColor color) {
         this.configName    = name;
         this.lowercaseName = name.toLowerCase();
         
@@ -35,6 +37,8 @@ public class ArenaClass
 
         this.unbreakableWeapons = unbreakableWeapons;
         this.unbreakableArmor = unbreakableArmor;
+        
+        this.color = color;
     }
     
     /**
@@ -51,6 +55,14 @@ public class ArenaClass
      */
     public String getLowercaseName() {
         return lowercaseName;
+    }
+    
+    /**
+     * Get the color of the class.
+     * @return the color of the class.
+     */
+    public ChatColor getColor() {
+        return color;
     }
     
     /**

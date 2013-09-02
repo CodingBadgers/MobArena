@@ -15,7 +15,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.*;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.*;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.potion.PotionEffect;
@@ -436,9 +435,12 @@ public class ArenaImpl implements Arena
                 p.setExp(0.0f);
             }
             assignClassPermissions(p);
-            arenaPlayerMap.get(p).resetStats();
             
-            scoreboard.addPlayer(p);
+            ArenaPlayer arenaPlayer = arenaPlayerMap.get(p);
+            arenaPlayer.resetStats();
+            
+            ArenaClass arenaClass = arenaPlayer.getArenaClass();
+            scoreboard.addPlayer(p, arenaClass.getConfigName(), arenaClass.getColor());
         }
         
         // Start spawning monsters (must happen before 'running = true;')
@@ -665,6 +667,7 @@ public class ArenaImpl implements Arena
         // Clear the player's inventory
         if (arenaPlayers.remove(p)) {
             clearInv(p);
+            scoreboard.killPlayer(p);
         }
         
         if (!settings.getBoolean("auto-respawn", true)) {
@@ -951,6 +954,8 @@ public class ArenaImpl implements Arena
     
     private void clearPlayer(Player p)
     {
+    	scoreboard.removePlayer(p);
+    	
         // Remove the player data completely.
         PlayerData mp = playerData.remove(p);
         
@@ -969,8 +974,6 @@ public class ArenaImpl implements Arena
         arenaPlayers.remove(p);
         lobbyPlayers.remove(p);
         arenaPlayerMap.remove(p);
-        
-        scoreboard.removePlayer(p);
     }
     
     private void setHealth(Player p, double health) {
@@ -1056,7 +1059,7 @@ public class ArenaImpl implements Arena
         // Check the remaining slots for weapons
         if (arenaClass.hasUnbreakableWeapons()) {
             for (ItemStack stack : contents) {
-                if (stack != null && arenaClass.isWeapon(stack)) {
+                if (stack != null && ArenaClass.isWeapon(stack)) {
                     stack.setDurability(Short.MIN_VALUE);
                 }
             }
