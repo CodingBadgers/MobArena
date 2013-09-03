@@ -15,23 +15,25 @@ import com.garbagemule.MobArena.framework.Arena;
 
 public class ScoreboardManager {
     private static final String DISPLAY_NAME = ChatColor.GREEN + "Kills       " + ChatColor.AQUA + "Wave ";
-    
     private static final String DEAD_TEAM_NAME = "dead";
-    private static final String DEAD_TEAM_PREFIX = ChatColor.STRIKETHROUGH + "";
     
     private Arena arena;
     private Scoreboard scoreboard;
     private Objective kills;
+    private Objective lobby;
     private HashMap<Player, String> teamPlayer = new HashMap<Player, String>();
+    private HashMap<Player, String> lobbyTeamPlayer = new HashMap<Player, String>();
     private Team deadTeam;
+    private String deadTeamPrefix;
     
     /**
      * Create a new scoreboard for the given arena.
      * @param arena an arena
      */
-    ScoreboardManager(Arena arena) {
+    ScoreboardManager(Arena arena, String deadTeamPrefix) {
         this.arena = arena;
-        scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
+        this.scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
+        this.deadTeamPrefix = deadTeamPrefix;
     }
     
     /**
@@ -84,14 +86,24 @@ public class ScoreboardManager {
      */
     void removePlayer(Player player) {
     	
-    	if (!teamPlayer.containsKey(player))
-    		return;
+    	player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
     	
-    	final String teamName = teamPlayer.get(player);   	
-    	if (!teamName.equalsIgnoreCase(DEAD_TEAM_NAME))
-    		killPlayer(player);
-    	    	
-        player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
+    	if (lobbyTeamPlayer.containsKey(player))
+    	{
+    		final String teamName = lobbyTeamPlayer.get(player);    	
+        	Team team = scoreboard.getTeam(teamName);
+        	if (team != null) {
+        		team.removePlayer(player);
+        		lobbyTeamPlayer.remove(player);
+        	}
+    	}
+    	
+    	if (teamPlayer.containsKey(player))
+    	{
+	    	final String teamName = teamPlayer.get(player);   	
+	    	if (!teamName.equalsIgnoreCase(DEAD_TEAM_NAME))
+	    		killPlayer(player);
+    	}
     }
 
     /**
@@ -130,6 +142,9 @@ public class ScoreboardManager {
         }, 1);
     }
     
+    /**
+     * Reset the ingame scoreboard
+     */
     private void resetKills() {
         if (kills != null) {
             kills.unregister();
@@ -142,17 +157,81 @@ public class ScoreboardManager {
         	deadTeam.unregister();
         }
         deadTeam = scoreboard.registerNewTeam(DEAD_TEAM_NAME);
-        deadTeam.setPrefix(DEAD_TEAM_PREFIX);
+        deadTeam.setPrefix(deadTeamPrefix);
+        
+        teamPlayer.clear();
+        lobbyTeamPlayer.clear();
     }
+    
+    /**
+     * Setup the scoreboard for lobby use
+     */
+	void setupForLobby(Arena arena) {
+		if (lobby != null) {
+			lobby.unregister();
+		}
+		lobby = scoreboard.registerNewObjective("lobby", "ma-lobby");
+		lobby.setDisplaySlot(DisplaySlot.SIDEBAR);
+		lobby.setDisplayName(arena.arenaName());
+		
+		teamPlayer.clear();
+        lobbyTeamPlayer.clear();
+	}
+    
+    /**
+     * Add a player to the lobby sign
+     */
+	void addLobbyPlayer(Arena arena, Player player) {
+		player.setScoreboard(scoreboard);
+		lobby.getScore(player).setScore(1);
+		
+		final int noofPlayers = arena.getPlayersInLobby().size();
+		lobby.setDisplayName(arena.arenaName() + "    " + noofPlayers + (noofPlayers == 1 ? " player" : " players"));
+	}
+	
+	/**
+     * Color a player green when they are ready
+     */
+	void readyLobbyPlayer(Player p) {
+		
+	}
+	
+	/**
+     * Set a players team based upon player class
+     */
+	void setLobbyPlayerClass(ArenaPlayer player) {
+		
+		// Remove from old team
+		if (lobbyTeamPlayer.containsKey(player.getPlayer())) {
+			Team team = scoreboard.getTeam(lobbyTeamPlayer.get(player.getPlayer()));
+			if (team != null) {
+				team.removePlayer(player.getPlayer());
+			}
+		}
+		
+		// Add to new team
+		final String teamName = player.getArenaClass().getConfigName();
+		Team team = scoreboard.getTeam(teamName);
+    	if (team == null) {
+    		team = scoreboard.registerNewTeam(teamName);
+    		team.setPrefix(player.getArenaClass().getColor() + "[" + teamName + "] " + ChatColor.WHITE);
+    	}    
+    	team.addPlayer(player.getPlayer());
+    	lobbyTeamPlayer.put(player.getPlayer(), teamName);
+	}
 
     static class NullScoreboardManager extends ScoreboardManager {
         NullScoreboardManager(Arena arena) {
-            super(arena);
+            super(arena, ChatColor.STRIKETHROUGH + "");
         }
         void addPlayer(Player player) {}
         void removePlayer(Player player) {}
+        void killPlayer(Player player) {}
         void addKill(Player player) {}
         void updateWave(int wave) {}
         void initialize() {}
+        void addLobbyPlayer(Player p) {}
+        void readyLobbyPlayer(Player p) {}
+        void setLobbyPlayerClass(ArenaPlayer p) {}
     }
 }

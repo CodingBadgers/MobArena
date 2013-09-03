@@ -167,8 +167,10 @@ public class ArenaImpl implements Arena
         Time time = Enums.getEnumFromString(Time.class, timeString);
         this.timeStrategy = (time != null ? new TimeStrategyLocked(time) : new TimeStrategyNull());
         
+        final String deadTeamPrefix = ChatColor.translateAlternateColorCodes('&', settings.getString("dead-team-prefix", "&4[Dead] "));
+        
         // Scoreboards
-        this.scoreboard = (settings.getBoolean("use-scoreboards", true) ? new ScoreboardManager(this) : new NullScoreboardManager(this));
+        this.scoreboard = (settings.getBoolean("use-scoreboards", true) ? new ScoreboardManager(this, deadTeamPrefix) : new NullScoreboardManager(this));
     }
     
     
@@ -585,6 +587,11 @@ public class ArenaImpl implements Arena
         }
         p.setGameMode(GameMode.SURVIVAL);
         
+        if (arenaPlayerMap.isEmpty()) {
+        	scoreboard.setupForLobby(this);
+        }
+        scoreboard.addLobbyPlayer(this, p);
+        
         arenaPlayerMap.put(p, new ArenaPlayer(p, this, plugin));
         
         // Start the auto-start-timer
@@ -601,10 +608,11 @@ public class ArenaImpl implements Arena
         return true;
     }
 
-    @Override
+	@Override
     public void playerReady(Player p)
     {
         readyPlayers.add(p);
+        scoreboard.readyLobbyPlayer(p);
         
         int minPlayers = getMinPlayers();
         if (minPlayers > 0 && lobbyPlayers.size() < minPlayers)
@@ -1017,6 +1025,8 @@ public class ArenaImpl implements Arena
 
         PermissionAttachment pa = arenaClass.grantLobbyPermissions(plugin, p);
         replacePermissions(p, pa);
+        
+        scoreboard.setLobbyPlayerClass(arenaPlayer);
 
         autoReady(p);
     }

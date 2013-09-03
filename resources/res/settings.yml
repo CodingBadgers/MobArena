@@ -38,3 +38,4 @@ use-scoreboards: true
 isolated-chat: false
 global-join-announce: false
 global-end-announce: false
+dead-team-prefix: '&4[Dead] '
