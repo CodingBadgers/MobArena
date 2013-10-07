@@ -13,8 +13,10 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.Sign;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.*;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.inventory.*;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.potion.PotionEffect;
@@ -27,12 +29,14 @@ import com.garbagemule.MobArena.events.*;
 import com.garbagemule.MobArena.framework.Arena;
 import com.garbagemule.MobArena.leaderboards.Leaderboard;
 import com.garbagemule.MobArena.region.ArenaRegion;
+import com.garbagemule.MobArena.region.RegionPoint;
 import com.garbagemule.MobArena.repairable.*;
 import com.garbagemule.MobArena.time.Time;
 import com.garbagemule.MobArena.time.TimeStrategy;
 import com.garbagemule.MobArena.time.TimeStrategyLocked;
 import com.garbagemule.MobArena.time.TimeStrategyNull;
 import com.garbagemule.MobArena.util.*;
+import com.garbagemule.MobArena.util.config.ConfigUtils;
 import com.garbagemule.MobArena.util.inventory.InventoryManager;
 import com.garbagemule.MobArena.util.inventory.InventoryUtils;
 import com.garbagemule.MobArena.waves.*;
@@ -208,6 +212,7 @@ public class ArenaImpl implements Arena
     public void setEnabled(boolean value) {
         enabled = value;
         settings.set("enabled", enabled);
+        updateJoinSigns();
     }
 
     @Override
@@ -234,6 +239,7 @@ public class ArenaImpl implements Arena
     @Override
     public void setEditMode(boolean value) {
         edit = value;
+        updateJoinSigns();
     }
 
     @Override
@@ -451,6 +457,7 @@ public class ArenaImpl implements Arena
         
         // Set the boolean.
         running = true;
+        updateJoinSigns();
         
         // Spawn pets (must happen after 'running = true;')
         spawnPets();
@@ -522,6 +529,7 @@ public class ArenaImpl implements Arena
         
         // Restore enabled status.
         enabled = en;
+        updateJoinSigns();
         
         return true;
     }
@@ -593,6 +601,7 @@ public class ArenaImpl implements Arena
         scoreboard.addLobbyPlayer(this, p);
         
         arenaPlayerMap.put(p, new ArenaPlayer(p, this, plugin));
+        updateJoinSigns();
         
         // Start the auto-start-timer
         autoStartTimer.start();
@@ -656,6 +665,7 @@ public class ArenaImpl implements Arena
         
         movePlayerToEntry(p);
         discardPlayer(p);
+        updateJoinSigns();
         
         endArena();
         return true;
@@ -1461,5 +1471,51 @@ public class ArenaImpl implements Arena
     @Override
     public String toString() {
         return ((enabled && region.isSetup()) ? ChatColor.GREEN : ChatColor.GRAY) + configName();
+    }
+    
+    @Override
+    public void addLeaderboardSign(SignChangeEvent event) {
+        setLeaderboard(new Leaderboard(plugin, this, event.getBlock().getLocation()));
+        getRegion().set(RegionPoint.LEADERBOARD, event.getBlock().getLocation());
+
+        Messenger.tell(event.getPlayer(), "Leaderboard made. Now set up the stat signs!");
+    }
+
+    @Override
+    public void addJoinSign(SignChangeEvent event) {
+        getRegion().set(RegionPoint.JOIN_BOARD, event.getBlock().getLocation());
+
+        Messenger.tell(event.getPlayer(), Msg.ARENA_CREATE_JOIN_SIGN, arenaName());
+        Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+            @Override
+            public void run() {
+                updateJoinSigns();
+            }
+        }, 5);
+        updateJoinSigns();
+    }
+
+    @Override
+    public void updateJoinSigns() {
+        for (Location loc : getRegion().getJoinSigns()) {
+            if (!(loc.getBlock().getState() instanceof Sign)) {
+                Messenger.warning("Sign at " + ConfigUtils.formatLocation(loc) + " is not a sign (" + loc.getBlock().getState().getClass().getSimpleName() + ")");
+                continue;
+            }
+            
+            Sign sign = (Sign) loc.getBlock().getState();
+            
+            sign.setLine(0, ChatColor.GREEN + "[MobArena]");
+            sign.setLine(1, ChatColor.AQUA + arenaName());
+            sign.setLine(2, ChatColor.AQUA + "" + arenaPlayerMap.size() + "/" + (getMaxPlayers() == 0 ? "Unlimited" : getMaxPlayers()));
+            sign.setLine(3, getArenaState());
+            
+            sign.update(true);
+        }
+    }
+    
+    @Override
+    public String getArenaState() {
+        return isRunning() ? ChatColor.GREEN + "In Game" : !isEnabled() || inEditMode() ? "Disabled" : "Waiting...";
     }
 }

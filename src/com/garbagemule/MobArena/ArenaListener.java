@@ -76,29 +76,19 @@ import com.garbagemule.MobArena.repairable.*;
 import com.garbagemule.MobArena.util.TextUtils;
 import com.garbagemule.MobArena.waves.MABoss;
 
-public class ArenaListener
-{
+public class ArenaListener {
     private MobArena plugin;
     private Arena arena;
     private ArenaRegion region;
     private MonsterManager monsters;
     private ClassLimitManager classLimits;
 
-    private boolean softRestore,
-            softRestoreDrops,
-            protect;
-    private boolean monsterExp,
-            monsterInfight,
-            pvpOn,               // pvp-enabled in config
-            pvpEnabled = false,  // activated on first wave
-            foodRegen,
-            lockFoodLevel,
-            useClassChests;
+    private boolean softRestore, softRestoreDrops, protect;
+    private boolean monsterExp, monsterInfight, pvpOn, // pvp-enabled in config
+            pvpEnabled = false, // activated on first wave
+            foodRegen, lockFoodLevel, useClassChests;
     @SuppressWarnings("unused")
-    private boolean allowTeleport,
-            canShare,
-            allowMonsters,
-            autoIgniteTNT;
+    private boolean allowTeleport, canShare, allowMonsters, autoIgniteTNT;
 
     private Set<Player> banned;
 
@@ -109,40 +99,41 @@ public class ArenaListener
         this.monsters = arena.getMonsterManager();
 
         /*
-         * TODO: Figure out if this is really a good idea + It saves needing all
-         * those methods in Arena.java + It is relatively simple + It would be
-         * fairly easy to implement an observer pattern - More private fields -
-         * Uglier code
+         * TODO: Figure out if this is really a good idea + It saves needing
+         * all those methods in Arena.java + It is relatively simple + It
+         * would be fairly easy to implement an observer pattern - More
+         * private fields - Uglier code
          */
         ConfigurationSection s = arena.getSettings();
-        this.softRestore      = s.getBoolean("soft-restore",         false);
-        this.softRestoreDrops = s.getBoolean("soft-restore-drops",   false);
-        this.protect          = s.getBoolean("protect",              true);
-        this.monsterExp       = s.getBoolean("monster-exp",          false);
-        this.monsterInfight   = s.getBoolean("monster-infight",      false);
-        this.pvpOn            = s.getBoolean("pvp-enabled",          false);
-        this.foodRegen        = s.getBoolean("food-regen",           false);
-        this.lockFoodLevel    = s.getBoolean("lock-food-level",      true);
-        this.allowTeleport    = s.getBoolean("allow-teleporting",    false);
-        this.canShare         = s.getBoolean("share-items-in-arena", true);
-        this.autoIgniteTNT    = s.getBoolean("auto-ignite-tnt",      false);
-        this.useClassChests   = s.getBoolean("use-class-chests",     false);
-        
+        this.softRestore = s.getBoolean("soft-restore", false);
+        this.softRestoreDrops = s.getBoolean("soft-restore-drops", false);
+        this.protect = s.getBoolean("protect", true);
+        this.monsterExp = s.getBoolean("monster-exp", false);
+        this.monsterInfight = s.getBoolean("monster-infight", false);
+        this.pvpOn = s.getBoolean("pvp-enabled", false);
+        this.foodRegen = s.getBoolean("food-regen", false);
+        this.lockFoodLevel = s.getBoolean("lock-food-level", true);
+        this.allowTeleport = s.getBoolean("allow-teleporting", false);
+        this.canShare = s.getBoolean("share-items-in-arena", true);
+        this.autoIgniteTNT = s.getBoolean("auto-ignite-tnt", false);
+        this.useClassChests = s.getBoolean("use-class-chests", false);
+
         this.classLimits = arena.getClassLimitManager();
 
         this.allowMonsters = arena.getWorld().getAllowMonsters();
 
         this.banned = new HashSet<Player>();
     }
-    
+
     void pvpActivate() {
         if (arena.isRunning() && !arena.getPlayersInArena().isEmpty()) {
             pvpEnabled = pvpOn;
         }
     }
-    
+
     void pvpDeactivate() {
-        if (pvpOn) pvpEnabled = false;
+        if (pvpOn)
+            pvpEnabled = false;
     }
 
     public void onBlockBreak(BlockBreakEvent event) {
@@ -152,18 +143,24 @@ public class ArenaListener
             if (event.getBlock().getLocation().equals(arena.getRegion().getLeaderboard())) {
                 arena.getRegion().set("leaderboard", null);
             }
+            
+            if (arena.getRegion().isJoinSign(event.getBlock().getLocation())) {
+                arena.getRegion().removeJoinSign(event.getBlock().getLocation());
+                Messenger.tell(event.getPlayer(), Msg.ARENA_REMOVE_JOIN_SIGN, arena.arenaName());
+                return;
+            }
         }
-        
+
         if (!arena.getRegion().contains(event.getBlock().getLocation()))
             return;
-        
+
         if (!arena.inArena(event.getPlayer())) {
             if (arena.inEditMode())
                 return;
             else
                 event.setCancelled(true);
         }
-        
+
         if (onBlockDestroy(event))
             return;
 
@@ -178,23 +175,24 @@ public class ArenaListener
     }
 
     private boolean onBlockDestroy(BlockEvent event) {
+        
         if (arena.inEditMode())
             return true;
-        
+
         if (!arena.isRunning())
             return false;
 
         Block b = event.getBlock();
         if (arena.removeBlock(b) || b.getType() == Material.TNT)
             return true;
-        
+
         if (softRestore) {
             if (arena.isProtected())
                 return false;
-            
+
             BlockState state = b.getState();
             Repairable r = null;
-            
+
             if (state instanceof InventoryHolder)
                 r = new RepairableContainer(state);
             else if (state instanceof Sign)
@@ -205,7 +203,7 @@ public class ArenaListener
                 r = new RepairableBlock(state);
 
             arena.addRepairable(r);
-            
+
             if (!softRestoreDrops)
                 b.setTypeId(0);
             return true;
@@ -227,7 +225,7 @@ public class ArenaListener
             event.setCancelled(true);
             return;
         }
-        
+
         // If the block is TNT, set its planter
         if (b.getType() == Material.TNT) {
             if (autoIgniteTNT) {
@@ -248,11 +246,11 @@ public class ArenaListener
             arena.addBlock(b.getRelative(0, 1, 0));
         }
     }
-    
+
     private void setPlanter(Metadatable tnt, Player planter) {
         tnt.setMetadata("mobarena-planter", new FixedMetadataValue(plugin, planter));
     }
-    
+
     private Player getPlanter(Metadatable tnt) {
         List<MetadataValue> values = tnt.getMetadata("mobarena-planter");
         for (MetadataValue value : values) {
@@ -278,35 +276,29 @@ public class ArenaListener
             return;
 
         switch (event.getCause()) {
-            case FLINT_AND_STEEL:
-                if (arena.inEditMode()) return;
-                if (arena.isRunning()) {
-                    if (b.getType() == Material.TNT) {
-                        Player planter = getPlanter(b);
-                        if (planter != null) {
-                            b.setTypeId(0);
-                            TNTPrimed tnt = b.getWorld().spawn(b.getLocation(), TNTPrimed.class);
-                            setPlanter(tnt, planter);
-                        }
-                    } else {
-                        arena.addBlock(event.getBlock().getRelative(BlockFace.UP));
+        case FLINT_AND_STEEL:
+            if (arena.inEditMode())
+                return;
+            if (arena.isRunning()) {
+                if (b.getType() == Material.TNT) {
+                    Player planter = getPlanter(b);
+                    if (planter != null) {
+                        b.setTypeId(0);
+                        TNTPrimed tnt = b.getWorld().spawn(b.getLocation(), TNTPrimed.class);
+                        setPlanter(tnt, planter);
                     }
-                    break;
+                } else {
+                    arena.addBlock(event.getBlock().getRelative(BlockFace.UP));
                 }
-            case LIGHTNING:
-            case SPREAD:
-                event.setCancelled(true);
                 break;
-            default:
-                break;
+            }
+        case LIGHTNING:
+        case SPREAD:
+            event.setCancelled(true);
+            break;
+        default:
+            break;
         }
-    }
-
-    public void onSignChange(SignChangeEvent event) {
-        arena.setLeaderboard(new Leaderboard(plugin, arena, event.getBlock().getLocation()));
-        arena.getRegion().set(RegionPoint.LEADERBOARD, event.getBlock().getLocation());
-
-        Messenger.tell(event.getPlayer(), "Leaderboard made. Now set up the stat signs!");
     }
 
     public void onCreatureSpawn(CreatureSpawnEvent event) {
@@ -317,8 +309,7 @@ public class ArenaListener
         if (event.getSpawnReason() != SpawnReason.CUSTOM) {
             if (event.getSpawnReason() == SpawnReason.BUILD_IRONGOLEM || event.getSpawnReason() == SpawnReason.BUILD_SNOWMAN) {
                 monsters.addGolem(event.getEntity());
-            }
-            else {
+            } else {
                 event.setCancelled(true);
                 return;
             }
@@ -364,8 +355,7 @@ public class ArenaListener
 
             if (state.getData() instanceof Door && ((Door) state.getData()).isTopHalf()) {
                 state = b.getRelative(BlockFace.DOWN).getState();
-            }
-            else if (state.getData() instanceof Bed && ((Bed) state.getData()).isHeadOfBed()) {
+            } else if (state.getData() instanceof Bed && ((Bed) state.getData()).isHeadOfBed()) {
                 state = b.getRelative(((Bed) state.getData()).getFacing().getOppositeFace()).getState();
             }
 
@@ -399,21 +389,18 @@ public class ArenaListener
 
     /******************************************************
      * 
-     *                  DEATH LISTENERS
+     * DEATH LISTENERS
      * 
      ******************************************************/
 
     public void onEntityDeath(EntityDeathEvent event) {
         if (event instanceof PlayerDeathEvent) {
             onPlayerDeath((PlayerDeathEvent) event, (Player) event.getEntity());
-        }
-        else if (monsters.removeMonster(event.getEntity())) {
+        } else if (monsters.removeMonster(event.getEntity())) {
             onMonsterDeath(event);
-        }
-        else if (monsters.removeMount(event.getEntity())) {
+        } else if (monsters.removeMount(event.getEntity())) {
             onMountDeath(event);
-        }
-        else if (monsters.removeGolem(event.getEntity())) {
+        } else if (monsters.removeGolem(event.getEntity())) {
             Messenger.announce(arena, Msg.GOLEM_DIED);
         }
     }
@@ -442,11 +429,11 @@ public class ArenaListener
         arena.playerRespawn(p);
         return true;
     }
-    
+
     private void onMountDeath(EntityDeathEvent event) {
-        
+
     }
-    
+
     private void onMonsterDeath(EntityDeathEvent event) {
         EntityDamageEvent e1 = event.getEntity().getLastDamageCause();
         EntityDamageByEntityEvent e2 = (e1 instanceof EntityDamageByEntityEvent) ? (EntityDamageByEntityEvent) e1 : null;
@@ -456,8 +443,7 @@ public class ArenaListener
         // Make sure to grab the owner of a projectile/pet
         if (damager instanceof Projectile) {
             damager = ((Projectile) damager).getShooter();
-        }
-        else if (damager instanceof Wolf && arena.hasPet(damager)) {
+        } else if (damager instanceof Wolf && arena.hasPet(damager)) {
             damager = (Player) ((Wolf) damager).getOwner();
         }
 
@@ -491,7 +477,7 @@ public class ArenaListener
             }
             callKillEvent(p, damagee);
         }
-        
+
         MABoss boss = monsters.removeBoss(damagee);
         if (boss != null) {
             boss.setDead(true);
@@ -520,7 +506,7 @@ public class ArenaListener
 
     /******************************************************
      * 
-     *                  DAMAGE LISTENERS
+     * DAMAGE LISTENERS
      * 
      ******************************************************/
 
@@ -553,10 +539,11 @@ public class ArenaListener
             onPetDamage(event, (Wolf) damagee, damager);
         }
         // Mount
-        /* TODO: Uncomment for 1.6
-        else if (damagee instanceof Horse && monsters.hasMount(damagee)) {
-            onMountDamage(event, (Horse) damagee, damager);
-        }*/
+        /*
+         * TODO: Uncomment for 1.6 else if (damagee instanceof Horse &&
+         * monsters.hasMount(damagee)) { onMountDamage(event, (Horse) damagee,
+         * damager); }
+         */
         // Player
         else if (damagee instanceof Player) {
             onPlayerDamage(event, (Player) damagee, damager);
@@ -600,12 +587,14 @@ public class ArenaListener
     private void onPetDamage(EntityDamageEvent event, Wolf pet, Entity damager) {
         event.setCancelled(true);
     }
-    
-    /* TODO: Uncomment for 1.6
-    private void onMountDamage(EntityDamageEvent event, Horse mount, Entity damager) {
 
-    }*/
-    
+    /*
+     * TODO: Uncomment for 1.6 private void onMountDamage(EntityDamageEvent
+     * event, Horse mount, Entity damager) {
+     * 
+     * }
+     */
+
     private void onMonsterDamage(EntityDamageEvent event, Entity monster, Entity damager) {
         if (damager instanceof Player) {
             Player p = (Player) damager;
@@ -617,8 +606,7 @@ public class ArenaListener
             ArenaPlayerStatistics aps = arena.getArenaPlayer(p).getStats();
             aps.add("dmgDone", event.getDamage());
             aps.inc("hits");
-        }
-        else if (damager instanceof Wolf && arena.hasPet(damager)) {
+        } else if (damager instanceof Wolf && arena.hasPet(damager)) {
             //event.setDamage(1);
             Player p = (Player) ((Wolf) damager).getOwner();
             ArenaPlayerStatistics aps = arena.getArenaPlayer(p).getStats();
@@ -630,7 +618,7 @@ public class ArenaListener
                 event.setCancelled(true);
         }
     }
-    
+
     private void onGolemDamage(EntityDamageEvent event, Entity golem, Entity damager) {
         if (damager instanceof Player) {
             Player p = (Player) damager;
@@ -638,7 +626,7 @@ public class ArenaListener
                 event.setCancelled(true);
                 return;
             }
-            
+
             if (!pvpEnabled) {
                 event.setCancelled(true);
                 return;
@@ -664,13 +652,17 @@ public class ArenaListener
         if (ac != null && ac.hasUnbreakableArmor()) {
             PlayerInventory inv = p.getInventory();
             ItemStack stack = inv.getHelmet();
-            if (stack != null) stack.setDurability((short) 0);
+            if (stack != null)
+                stack.setDurability((short) 0);
             stack = inv.getChestplate();
-            if (stack != null) stack.setDurability((short) 0);
+            if (stack != null)
+                stack.setDurability((short) 0);
             stack = inv.getLeggings();
-            if (stack != null) stack.setDurability((short) 0);
+            if (stack != null)
+                stack.setDurability((short) 0);
             stack = inv.getBoots();
-            if (stack != null) stack.setDurability((short) 0);
+            if (stack != null)
+                stack.setDurability((short) 0);
         }
     }
 
@@ -701,29 +693,26 @@ public class ArenaListener
         else if (monsters.getMonsters().contains(event.getEntity())) {
             if (event.getReason() == TargetReason.FORGOT_TARGET) {
                 event.setTarget(MAUtils.getClosestPlayer(plugin, event.getEntity(), arena));
-            }
-            else if (event.getReason() == TargetReason.TARGET_DIED) {
+            } else if (event.getReason() == TargetReason.TARGET_DIED) {
                 event.setTarget(MAUtils.getClosestPlayer(plugin, event.getEntity(), arena));
-            }
-            else if (event.getReason() == TargetReason.TARGET_ATTACKED_ENTITY) {
+            } else if (event.getReason() == TargetReason.TARGET_ATTACKED_ENTITY) {
                 if (arena.hasPet(event.getTarget())) {
                     event.setCancelled(true);
                 }
-            }
-            else if (event.getReason() == TargetReason.CLOSEST_PLAYER) {
+            } else if (event.getReason() == TargetReason.CLOSEST_PLAYER) {
                 if (!arena.inArena((Player) event.getTarget())) {
                     event.setCancelled(true);
                 }
             }
         }
     }
-    
+
     public void onEntityTeleport(EntityTeleportEvent event) {
         if (region.contains(event.getFrom()) || region.contains(event.getTo())) {
             event.setCancelled(true);
         }
     }
-    
+
     public void onPotionSplash(PotionSplashEvent event) {
         ThrownPotion potion = event.getPotion();
         if (!region.contains(potion.getLocation()) || pvpEnabled) {
@@ -792,18 +781,18 @@ public class ArenaListener
                 event.setCancelled(true);
             }
         }
-        
+
         // If the player is in the lobby, just cancel
         else if (arena.inLobby(p)) {
             Messenger.tell(p, Msg.LOBBY_DROP_ITEM);
             event.setCancelled(true);
         }
-        
+
         // Same if it's a spectator, but...
         else if (arena.inSpec(p)) {
             Messenger.tell(p, Msg.LOBBY_DROP_ITEM);
             event.setCancelled(true);
-            
+
             // If the spectator isn't in the region, force them to leave
             if (!region.contains(p.getLocation())) {
                 Messenger.tell(p, Msg.MISC_MA_LEAVE_REMINDER);
@@ -812,9 +801,9 @@ public class ArenaListener
         }
 
         /*
-         * If the player is not in the arena in any way (as arena player, lobby
-         * player or a spectator), but they -are- in the region, it must mean
-         * they are trying to drop items when not allowed
+         * If the player is not in the arena in any way (as arena player,
+         * lobby player or a spectator), but they -are- in the region, it must
+         * mean they are trying to drop items when not allowed
          */
         else if (region.contains(p.getLocation())) {
             Messenger.tell(p, Msg.LOBBY_DROP_ITEM);
@@ -848,11 +837,40 @@ public class ArenaListener
 
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player p = event.getPlayer();
+        Action a = event.getAction();
+        
+        Block block = event.getClickedBlock();
+        if (block != null && arena.getRegion().isJoinSign(block.getLocation())) {
+            
+            if (a != Action.RIGHT_CLICK_BLOCK)
+                return;
+
+            // Deny joining from other arenas
+            Arena fromArena = plugin.getArenaMaster().getArenaWithPlayer(p);
+            if (fromArena != null && (fromArena.inArena(p) || fromArena.inLobby(p))) {
+                Messenger.tell(p, Msg.JOIN_ALREADY_PLAYING);
+                return;
+            }
+
+            // Per-arena sanity checks
+            if (!arena.canJoin(p)) {
+                return;
+            }
+
+            // Force leave previous arena
+            if (fromArena != null) {
+                fromArena.playerLeave(p);
+            }
+
+            // Join the arena!
+            arena.playerJoin(p, p.getLocation());
+            return;
+        }
+
         if (arena.inArena(p) || !arena.inLobby(p))
             return;
 
         // Player is in the lobby, so disallow using items.
-        Action a = event.getAction();
         if (a == Action.RIGHT_CLICK_AIR || a == Action.RIGHT_CLICK_BLOCK) {
             event.setUseItemInHand(Result.DENY);
             event.setCancelled(true);
@@ -874,14 +892,14 @@ public class ArenaListener
             Sign sign = (Sign) event.getClickedBlock().getState();
             handleSign(sign, p);
         }
+
     }
 
     private void handleReadyBlock(Player p) {
         if (arena.getArenaPlayer(p).getArenaClass() != null) {
             Messenger.tell(p, Msg.LOBBY_PLAYER_READY);
             arena.playerReady(p);
-        }
-        else {
+        } else {
             Messenger.tell(p, Msg.LOBBY_PICK_CLASS);
         }
     }
@@ -898,21 +916,21 @@ public class ArenaListener
             Messenger.tell(p, Msg.LOBBY_CLASS_PERMISSION);
             return;
         }
-        
+
         ArenaClass oldAC = arena.getArenaPlayer(p).getArenaClass();
         ArenaClass newAC = arena.getClasses().get(className);
-        
+
         // Same class, do nothing.
         if (newAC.equals(oldAC)) {
             return;
         }
-        
+
         // If the new class is full, inform the player.
         if (!classLimits.canPlayerJoinClass(newAC)) {
             Messenger.tell(p, Msg.LOBBY_CLASS_FULL);
             return;
         }
-        
+
         // Otherwise, leave the old class, and pick the new!
         classLimits.playerLeftClass(oldAC, p);
         classLimits.playerPickedClass(newAC, p);
@@ -920,21 +938,19 @@ public class ArenaListener
         // Delay the inventory stuff to ensure that right-clicking works.
         delayAssignClass(p, className, sign);
     }
-    
-    /*private boolean cansPlayerJoinClass(ArenaClass ac, Player p) {
-        // If they can not join the class, deny them
-        if (!classLimits.canPlayerJoinClass(ac)) {
-            Messenger.tell(p, Msg.LOBBY_CLASS_FULL);
-            return false;
-        }
-        
-        // Increment the "in use" in the Class Limit Manager
-        classLimits.playerPickedClass(ac);
-        return true;
-    }*/
+
+    /*
+     * private boolean cansPlayerJoinClass(ArenaClass ac, Player p) { // If
+     * they can not join the class, deny them if
+     * (!classLimits.canPlayerJoinClass(ac)) { Messenger.tell(p,
+     * Msg.LOBBY_CLASS_FULL); return false; }
+     * 
+     * // Increment the "in use" in the Class Limit Manager
+     * classLimits.playerPickedClass(ac); return true; }
+     */
 
     private void delayAssignClass(final Player p, final String className, final Sign sign) {
-        plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin,new Runnable() {
+        plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
             public void run() {
                 if (!className.equalsIgnoreCase("random")) {
                     if (useClassChests) {
@@ -947,15 +963,15 @@ public class ArenaListener
                         } else {
                             // Otherwise, start the search
                             BlockFace backwards = ((org.bukkit.material.Sign) sign.getData()).getFacing().getOppositeFace();
-                            Block blockSign   = sign.getBlock();
-                            Block blockBelow  = blockSign.getRelative(BlockFace.DOWN);
+                            Block blockSign = sign.getBlock();
+                            Block blockBelow = blockSign.getRelative(BlockFace.DOWN);
                             Block blockBehind = blockBelow.getRelative(backwards);
 
                             // If the block below this sign is a class sign, swap the order
                             if (blockBelow.getType() == Material.WALL_SIGN || blockBelow.getType() == Material.SIGN_POST) {
                                 String className = ChatColor.stripColor(((Sign) blockBelow.getState()).getLine(0)).toLowerCase();
                                 if (arena.getClasses().containsKey(className)) {
-                                    blockSign = blockBehind;  // Use blockSign as a temp while swapping
+                                    blockSign = blockBehind; // Use blockSign as a temp while swapping
                                     blockBehind = blockBelow;
                                     blockBelow = blockSign;
                                 }
@@ -966,9 +982,10 @@ public class ArenaListener
                             blockChest = findChestBelow(blockBelow, 6);
 
                             // Then, if no chest was found, check the pillar behind the sign
-                            if (blockChest == null) blockChest = findChestBelow(blockBehind, 6);
+                            if (blockChest == null)
+                                blockChest = findChestBelow(blockBehind, 6);
                         }
-                        
+
                         // If a chest was found, get the contents
                         if (blockChest != null) {
                             InventoryHolder holder = (InventoryHolder) blockChest.getState();
@@ -988,18 +1005,18 @@ public class ArenaListener
                     }
                     arena.assignClass(p, className);
                     Messenger.tell(p, Msg.LOBBY_CLASS_PICKED, TextUtils.camelCase(className));
-                }
-                else {
+                } else {
                     arena.addRandomPlayer(p);
                     Messenger.tell(p, Msg.LOBBY_CLASS_RANDOM);
                 }
             }
         });
     }
-    
+
     private Block findChestBelow(Block b, int left) {
-        if (left < 0) return null;
-        
+        if (left < 0)
+            return null;
+
         if (b.getType() == Material.CHEST || b.getType() == Material.TRAPPED_CHEST) {
             return b;
         }
@@ -1035,7 +1052,7 @@ public class ArenaListener
             }
         }, ticks);
     }
-    
+
     public TeleportResponse onPlayerTeleport(PlayerTeleportEvent event) {
         if (!arena.isEnabled() || !region.isSetup() || arena.inEditMode() || allowTeleport) {
             return TeleportResponse.IDGAF;
@@ -1050,7 +1067,7 @@ public class ArenaListener
             if (p.hasPermission("mobarena.admin.teleport")) {
                 return TeleportResponse.ALLOW;
             }
-            
+
             // Players not in the arena are free to warp out.
             if (!arena.inArena(p) && !arena.inLobby(p) && !arena.inSpec(p)) {
                 return TeleportResponse.ALLOW;
@@ -1063,13 +1080,12 @@ public class ArenaListener
 
             Messenger.tell(p, Msg.WARP_FROM_ARENA);
             return TeleportResponse.REJECT;
-        }
-        else if (region.contains(to)) {
+        } else if (region.contains(to)) {
             // Players with proper admin permission can warp in
             if (p.hasPermission("mobarena.admin.teleport")) {
                 return TeleportResponse.ALLOW;
             }
-            
+
             if (region.isWarp(from) || region.isWarp(to) || to.equals(arena.getPlayerEntry(p))) {
                 return TeleportResponse.ALLOW;
             }
@@ -1112,11 +1128,13 @@ public class ArenaListener
 
     public void onPlayerPreLogin(PlayerLoginEvent event) {
         Player p = event.getPlayer();
-        if (p == null || !p.isOnline()) return;
-        
+        if (p == null || !p.isOnline())
+            return;
+
         Arena arena = plugin.getArenaMaster().getArenaWithPlayer(p);
-        if (arena == null) return;
-        
+        if (arena == null)
+            return;
+
         arena.playerLeave(p);
     }
 }

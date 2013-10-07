@@ -71,6 +71,10 @@ public class ConfigUtils
 
     public static Location parseLocation(ConfigurationSection config, String path, World world) {
         String value = config.getString(path);
+        return parseLocation(world, value);
+    }
+
+    public static Location parseLocation(World world, String value) {
         if (value == null) return null;
 
         String[] parts = value.split(",");
@@ -102,6 +106,11 @@ public class ConfigUtils
             config.set(path, null);
             return;
         }
+        
+        config.set(path, formatLocation(location));
+    }
+
+    public static String formatLocation(Location location) {
         String x = twoPlaces(location.getX());
         String y = twoPlaces(location.getY());
         String z = twoPlaces(location.getZ());
@@ -115,8 +124,7 @@ public class ConfigUtils
         buffy.append(x).append(",").append(y).append(",").append(z);
         buffy.append(",").append(yaw).append(",").append(pit);
         buffy.append(",").append(world);
-
-        config.set(path, buffy.toString());
+        return buffy.toString();
     }
 
     private static String twoPlaces(double value, boolean force) {

@@ -12,6 +12,8 @@ public enum Msg {
     ARENA_JOIN_GLOBAL("Arena &e%&r is about to start! Type &e/ma j %&r to join!"),
     ARENA_LBOARD_NOT_FOUND("That arena does not have a leaderboard set up."),
     ARENA_AUTO_START("Arena will auto-start in &c%&r seconds."),
+    ARENA_CREATE_JOIN_SIGN("You have created a join sign for %"),
+    ARENA_REMOVE_JOIN_SIGN("You have removed a join sign for %"),
     JOIN_NOT_ENABLED("MobArena is not enabled."),
     JOIN_IN_OTHER_ARENA("You are already in an arena! Leave that one first."),
     JOIN_ARENA_NOT_ENABLED("This arena is not enabled."),

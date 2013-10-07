@@ -246,6 +246,10 @@ public class ArenaMasterImpl implements ArenaMaster
         loadSettings();
         loadClasses();
         loadArenas();
+
+        for (Arena a : getArenas()) {
+            a.updateJoinSigns();
+        }
     }
 
     /**

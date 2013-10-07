@@ -74,7 +74,7 @@ public class MAGlobalListener implements Listener
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
-    public void signChange(SignChangeEvent event) {
+    public void signChangeLeaderboards(SignChangeEvent event) {
         if (!event.getPlayer().hasPermission("mobarena.setup.leaderboards")) {
             return;
         }
@@ -88,7 +88,7 @@ public class MAGlobalListener implements Listener
         Stats stat;
         
         if ((arena = am.getArenaWithName(text)) != null) {
-            arena.getEventListener().onSignChange(event);
+            arena.addLeaderboardSign(event);
             setSignLines(event, ChatColor.GREEN + "MobArena", ChatColor.YELLOW + arena.arenaName(), ChatColor.AQUA + "Players", "---------------");
         }
         else if ((stat = Stats.getByShortName(text)) != null) {
@@ -102,6 +102,25 @@ public class MAGlobalListener implements Listener
         event.setLine(1, s2);
         event.setLine(2, s3);
         event.setLine(3, s4);
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void signChangeJoinSigns(SignChangeEvent event) {
+        if (!event.getPlayer().hasPermission("mobarena.setup.join")) {
+            return;
+        }
+        
+        if (!event.getLine(0).equalsIgnoreCase("[MobArena]")) {
+            return;
+        }
+        
+        String name = event.getLine(1);
+        Arena arena;
+        
+        if ((arena = am.getArenaWithName(name)) != null) {
+            arena.addJoinSign(event);
+            arena.updateJoinSigns();
+        }
     }
     
     

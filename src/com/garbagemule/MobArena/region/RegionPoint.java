@@ -9,7 +9,8 @@ public enum RegionPoint {
     LOBBY,
     SPECTATOR,
     EXIT,
-    LEADERBOARD;
+    LEADERBOARD,
+    JOIN_BOARD;
 
     @Override
     public String toString() {

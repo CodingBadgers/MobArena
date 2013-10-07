@@ -9,6 +9,7 @@ import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.garbagemule.MobArena.ArenaClass;
@@ -108,23 +109,7 @@ public interface Arena
     
     public ScoreboardManager getScoreboard();
     
-    
-    
-    
-
-    
     public void scheduleTask(Runnable r, int delay);
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     public boolean startArena();
     
@@ -243,4 +228,12 @@ public interface Arena
     public boolean hasIsolatedChat();
 
     public Player getLastPlayerStanding();
+
+    public void addLeaderboardSign(SignChangeEvent event);
+
+    public void addJoinSign(SignChangeEvent event);
+
+    public void updateJoinSigns();
+
+    public String getArenaState();
 }

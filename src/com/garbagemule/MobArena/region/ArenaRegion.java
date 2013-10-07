@@ -5,9 +5,12 @@ import com.garbagemule.MobArena.Messenger;
 import com.garbagemule.MobArena.MobArena;
 import com.garbagemule.MobArena.framework.Arena;
 import com.garbagemule.MobArena.util.Enums;
+import com.garbagemule.MobArena.util.config.ConfigUtils;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -27,12 +30,14 @@ public class ArenaRegion
     private Location lastP1, lastP2, lastL1, lastL2;
     private Location p1, p2, l1, l2, arenaWarp, lobbyWarp, specWarp, exitWarp, leaderboard;
     private Map<String,Location> spawnpoints, containers;
+    private List<Location> joinsigns;
     
     private boolean setup, lobbySetup;
     
     private ConfigurationSection coords;
     private ConfigurationSection spawns;
     private ConfigurationSection chests;
+    private ConfigurationSection signs;
     
     public ArenaRegion(ConfigurationSection section, Arena arena) {
         this.arena  = arena;
@@ -41,6 +46,7 @@ public class ArenaRegion
         this.coords = makeSection(section, "coords");
         this.spawns = makeSection(coords,  "spawnpoints");
         this.chests = makeSection(coords,  "containers");
+        this.signs  = makeSection(coords, "signs");
         
         reloadAll();
     }
@@ -55,10 +61,26 @@ public class ArenaRegion
         reloadLeaderboards();
         reloadSpawnpoints();
         reloadChests();
+        reloadJoinSigns();
         
         verifyData();
     }
     
+    public void reloadJoinSigns() {
+        List<String> signlocs = signs.getStringList("join");
+        joinsigns = new ArrayList<Location>();
+        for (String sign : signlocs) {
+            Location loc = parseLocation(null, sign);
+            
+            if (loc == null || !(loc.getBlock().getType() == Material.WALL_SIGN  || loc.getBlock().getType() == Material.SIGN_POST)) {
+                Messenger.warning("Join sign at " + sign + " is not a sign (" + loc.getBlock().getType() + ")");
+                continue;
+            }
+            
+            this.joinsigns.add(parseLocation(null, sign));
+        }
+    }
+
     public void reloadRegion() {
         p1 = parseLocation(coords, "p1", world);
         p2 = parseLocation(coords, "p2", world);
@@ -423,11 +445,48 @@ public class ArenaRegion
             case EXIT:
             case SPECTATOR:   setWarp(point, loc); return;
             case LEADERBOARD: setLeaderboard(loc); return;
+            case JOIN_BOARD: addJoinSign(loc); return;
         }
         
         throw new IllegalArgumentException("Invalid region point!");
     }
     
+    private void addJoinSign(Location loc) {
+        joinsigns.add(loc);
+        
+        List<String> signs = this.signs.getStringList("join");
+        signs.add(formatLocation(loc));
+        this.signs.set("join", signs);
+        
+        save();
+    }
+    
+    public List<Location> getJoinSigns() {
+        return joinsigns;
+    }
+
+    public boolean isJoinSign(Location location) {
+        for (Location loc : joinsigns) {
+            if (loc.getBlockX() == location.getBlockX() &&
+                    loc.getBlockY() == location.getBlockY() &&
+                    loc.getBlockZ() == location.getBlockZ() &&
+                    loc.getWorld() == location.getWorld()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void removeJoinSign(Location location) {
+        joinsigns.remove(location);
+        
+        List<String> signs = this.signs.getStringList("join");
+        signs.remove(location);
+        this.signs.set("join", signs);
+        
+        save();
+    }
+
     private void setPoint(RegionPoint point, Location l) {
         // Lower and upper locations
         RegionPoint r1, r2;
