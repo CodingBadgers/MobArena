@@ -197,20 +197,20 @@ public class MonsterManager
     	double maxHealth = monster.getMaxHealth();
     	double healthPercentage = (health / maxHealth) * 100.0D;
     	
-    	int fullDisplay = Math.min((int) (maxHealth / 2), 10);
+    	final int fullDisplay = 10;
     	int coloredDisplay = (int) Math.ceil(fullDisplay * (healthPercentage / 100.0D));
         int grayDisplay = fullDisplay - coloredDisplay;
         
         String healthbar = ChatColor.DARK_RED + "";
 
         for (int i = 0; i < coloredDisplay; ++i) {
-            healthbar += "❤";
+            healthbar += "|";
         }
         
         healthbar += ChatColor.GRAY;
 
         for (int i = 0; i < grayDisplay; ++i) {
-            healthbar += "❤";
+            healthbar += "|";
         }
         
         monster.setCustomName(healthbar);
