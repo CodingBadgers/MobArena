@@ -555,6 +555,7 @@ public class ArenaListener {
         // Regular monster
         else if (monsters.getMonsters().contains(damagee)) {
             onMonsterDamage(event, damagee, damager);
+            MonsterManager.setMobHealthBar(damagee, event);
         }
         // Player made golems
         else if (monsters.getGolems().contains(damagee)) {

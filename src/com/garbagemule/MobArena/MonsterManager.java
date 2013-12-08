@@ -7,10 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Wolf;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.garbagemule.MobArena.waves.MABoss;
@@ -177,4 +179,43 @@ public class MonsterManager
     public Set<LivingEntity> getBossMonsters() {
         return bosses.keySet();
     }
+    
+    public static void setMobHealthBar(Entity entity, EntityDamageEvent damageevent) {
+    	
+    	if (!(entity instanceof LivingEntity))
+    		return;
+    	
+    	LivingEntity monster = (LivingEntity)entity;
+    	
+    	double health = monster.getHealth() - (damageevent == null ? 0.0 : damageevent.getDamage());
+    	
+    	if (health <= 0) {
+    		monster.setCustomNameVisible(false);
+    		return;
+    	}
+    	
+    	double maxHealth = monster.getMaxHealth();
+    	double healthPercentage = (health / maxHealth) * 100.0D;
+    	
+    	int fullDisplay = Math.min((int) (maxHealth / 2), 10);
+    	int coloredDisplay = (int) Math.ceil(fullDisplay * (healthPercentage / 100.0D));
+        int grayDisplay = fullDisplay - coloredDisplay;
+        
+        String healthbar = ChatColor.DARK_RED + "";
+
+        for (int i = 0; i < coloredDisplay; ++i) {
+            healthbar += "❤";
+        }
+        
+        healthbar += ChatColor.GRAY;
+
+        for (int i = 0; i < grayDisplay; ++i) {
+            healthbar += "❤";
+        }
+        
+        monster.setCustomName(healthbar);
+        monster.setCustomNameVisible(true);
+        
+    }
+    
 }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.garbagemule.MobArena.events.ArenaCompleteEvent;
+
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
@@ -172,6 +173,8 @@ public class MASpawnThread implements Runnable
                 int health = (int) Math.max(1D, e.getMaxHealth() * mul);
                 e.setMaxHealth(health);
                 e.setHealth(health);
+                
+                MonsterManager.setMobHealthBar(e, null);
 
                 // Switch on the type.
                 switch (w.getType()){
