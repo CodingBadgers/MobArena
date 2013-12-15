@@ -1,6 +1,8 @@
 package com.garbagemule.MobArena.listeners;
 
 import org.bukkit.ChatColor;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -160,6 +162,25 @@ public class MAGlobalListener implements Listener
     public void entityDeath(EntityDeathEvent event) {
         for (Arena arena : am.getArenas())
             arena.getEventListener().onEntityDeath(event);
+    }
+    
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void playerDeath(PlayerDeathEvent event) {
+    	
+    	Player player = event.getEntity();
+    	
+        for (Arena arena : am.getArenas())
+        {
+        	if (!arena.inArena(player))
+        		continue;
+        	
+        	LivingEntity killer = player.getKiller();
+        	if (killer != null)
+        	{
+        		event.setDeathMessage(player.getPlayerListName() + " was killed by a " + killer.getType().getName() + " whilst playing the '" + arena.arenaName() + "' MobArena.");
+        	}
+        	return;
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)

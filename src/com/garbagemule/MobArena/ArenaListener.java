@@ -999,6 +999,7 @@ public class ArenaListener {
                             }
                             arena.assignClassGiveInv(p, className, contents);
                             p.getInventory().setContents(contents);
+                            p.updateInventory();
                             Messenger.tell(p, Msg.LOBBY_CLASS_PICKED, TextUtils.camelCase(className));
                             return;
                         }

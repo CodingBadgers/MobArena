@@ -614,6 +614,8 @@ public class ArenaImpl implements Arena
             Messenger.tell(p, Msg.ARENA_AUTO_START, "" + autoStartTimer.getRemaining());
         }
         
+        p.updateInventory();
+        
         return true;
     }
 

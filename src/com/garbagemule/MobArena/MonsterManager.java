@@ -201,13 +201,13 @@ public class MonsterManager
     	int coloredDisplay = (int) Math.ceil(fullDisplay * (healthPercentage / 100.0D));
         int grayDisplay = fullDisplay - coloredDisplay;
         
-        String healthbar = ChatColor.DARK_RED + "";
+        String healthbar = ChatColor.DARK_GREEN + "";
 
         for (int i = 0; i < coloredDisplay; ++i) {
             healthbar += "|";
         }
         
-        healthbar += ChatColor.GRAY;
+        healthbar += ChatColor.DARK_RED;
 
         for (int i = 0; i < grayDisplay; ++i) {
             healthbar += "|";
